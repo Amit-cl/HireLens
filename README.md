@@ -19,7 +19,7 @@
 
 - **Backend**: Java 17, Spring Boot 3, Spring Security, Spring Data JPA, Apache PDFBox, JJWT, Lombok
 - **Database**: PostgreSQL
-- **Frontend**: React, Vite, Modern CSS
+- **Frontend**: React, Vite, tailwind css
 - **AI Engine**: Structured JSON prompt engineering & deterministic scoring
 
 ---
@@ -48,16 +48,4 @@ hirelens/
 
 ---
 
-## 🚦 Roadmap
 
-- [x] Master Architectural Blueprint & Implementation Plan
-- [ ] Phase 1: Spring Boot foundation & PostgreSQL setup
-- [ ] Phase 2: User Authentication & JWT Security
-- [ ] Phase 3: Resume PDF Upload & Text Parsing
-- [ ] Phase 4: Job Description Management
-- [ ] Phase 5: Structured AI Resume Analysis Engine
-- [ ] Phase 6: React Analytics Dashboard
-- [ ] Phase 7: AI Dynamic Interview Generator
-- [ ] Phase 8: Mock Interview Room & Answer Capture
-- [ ] Phase 9: Multi-Rubric Answer Evaluation & Final Report
-- [ ] Phase 10: Dockerization, OpenAPI/Swagger & Production Packaging
