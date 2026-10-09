@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { authService } from './services/auth';
 import { resumeService } from './services/resume';
+import { jobService } from './services/job';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
@@ -21,7 +22,20 @@ export default function App() {
   const [uploadedResume, setUploadedResume] = useState(null);
   const [myResumes, setMyResumes] = useState([]);
 
+  // Step 4: Job Description State
+  const [jobs, setJobs] = useState([]);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [jobForm, setJobForm] = useState({
+    title: 'Java Backend Developer',
+    company: 'TechCorp Cloud',
+    description: 'Looking for Java developer with Spring Boot, PostgreSQL, REST APIs, Git and Docker experience.'
+  });
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [jobLoading, setJobLoading] = useState(false);
+  const [jobError, setJobError] = useState('');
+
   useEffect(() => {
+    loadJobs();
     if (authService.getToken()) {
       authService.fetchProfile()
         .then(profile => {
@@ -35,6 +49,18 @@ export default function App() {
     }
   }, []);
 
+  const loadJobs = async () => {
+    try {
+      const list = await jobService.getAllJobs();
+      setJobs(list);
+      if (list.length > 0 && !selectedJob) {
+        setSelectedJob(list[0]);
+      }
+    } catch {
+      // Backend may be offline or initializing
+    }
+  };
+
   const loadUserResumes = async () => {
     try {
       const list = await resumeService.fetchMyResumes();
@@ -43,7 +69,7 @@ export default function App() {
         setUploadedResume(list[0]);
       }
     } catch {
-      // Ignored if unauthenticated or empty
+      // Ignored
     }
   };
 
@@ -115,6 +141,27 @@ export default function App() {
     }
   };
 
+  const handleCreateJob = async (e) => {
+    e.preventDefault();
+    setJobLoading(true);
+    setJobError('');
+
+    try {
+      const created = await jobService.createJob(
+        jobForm.title,
+        jobForm.company,
+        jobForm.description
+      );
+      setJobs(prev => [created, ...prev]);
+      setSelectedJob(created);
+      setShowJobModal(false);
+    } catch (err) {
+      setJobError(err.message);
+    } finally {
+      setJobLoading(false);
+    }
+  };
+
   return (
     <div className="container">
       {/* Top Header */}
@@ -153,7 +200,7 @@ export default function App() {
             fontSize: '0.8rem',
             fontWeight: 600
           }}>
-            Step 3: Resume Ingestion
+            Step 4: Resume + Job Description Ready
           </span>
 
           {currentUser && (
@@ -306,70 +353,74 @@ export default function App() {
           </div>
         </div>
       ) : (
-        /* Authenticated Step 3 Workspace */
+        /* Authenticated Step 4 Dual Engine */
         <div>
-          {/* Architectural Flow Diagram */}
-          <div className="glass-panel" style={{ padding: '1.25rem 2rem', marginBottom: '2rem' }}>
-            <h4 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-              Step 3 Pipeline: PDF → Java → Extract Text → Database
-            </h4>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', textAlign: 'center' }}>
-              <div style={{ padding: '0.6rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-subtle)', flex: 1, minWidth: '130px' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f8fafc' }}>1. resume.pdf</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>POST /api/resumes/upload</div>
+          {/* Status Banner */}
+          <div className="glass-panel" style={{ padding: '1.25rem 2rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent-cyan)' }}>
+                Targeting Core Analysis Engine
               </div>
-              <span style={{ color: 'var(--accent-indigo)', fontWeight: 800 }}>→</span>
-              <div style={{ padding: '0.6rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-subtle)', flex: 1, minWidth: '130px' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f8fafc' }}>2. ResumeController</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>MultipartFile + Auth Token</div>
-              </div>
-              <span style={{ color: 'var(--accent-indigo)', fontWeight: 800 }}>→</span>
-              <div style={{ padding: '0.6rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-subtle)', flex: 1, minWidth: '130px' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f8fafc' }}>3. Apache PDFBox</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PDFTextStripper Parser</div>
-              </div>
-              <span style={{ color: 'var(--accent-indigo)', fontWeight: 800 }}>→</span>
-              <div style={{ padding: '0.6rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-subtle)', flex: 1, minWidth: '130px' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f8fafc' }}>4. PostgreSQL</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>resumes (raw_text)</div>
-              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                Resume Ingestion + Job Description Alignment
+              </h3>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <span style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: '6px',
+                background: uploadedResume ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                color: uploadedResume ? 'var(--accent-emerald)' : 'var(--accent-amber)',
+                fontSize: '0.85rem',
+                fontWeight: 600
+              }}>
+                {uploadedResume ? `✓ Resume: ${uploadedResume.fileName}` : '○ Resume Required'}
+              </span>
+              <span style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: '6px',
+                background: selectedJob ? 'rgba(6, 182, 212, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                color: selectedJob ? 'var(--accent-cyan)' : 'var(--accent-amber)',
+                fontSize: '0.85rem',
+                fontWeight: 600
+              }}>
+                {selectedJob ? `✓ Job: ${selectedJob.title}` : '○ Job Required'}
+              </span>
             </div>
           </div>
 
-          {/* Upload Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2rem', marginBottom: '2.5rem' }}>
+          {/* Dual Columns: Left = Resume, Right = Job Description */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '2rem', marginBottom: '2.5rem' }}>
             
-            {/* Left: Upload Form */}
+            {/* COLUMN 1: RESUME (Step 3) */}
             <div className="glass-panel" style={{ padding: '2rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                Upload Candidate Resume
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                Select a PDF resume to extract raw textual content using Apache PDFBox.
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--accent-indigo)', fontWeight: 700 }}>STEP 3 COMPONENT</span>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 700 }}>Candidate Resume</h3>
+                </div>
+                {uploadedResume && (
+                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-emerald)', fontWeight: 700 }}>
+                    PARSED #{uploadedResume.id}
+                  </span>
+                )}
+              </div>
 
+              {/* Upload Input */}
               {uploadError && (
-                <div style={{
-                  padding: '0.75rem 1rem',
-                  borderRadius: '8px',
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: '#fca5a5',
-                  fontSize: '0.85rem',
-                  marginBottom: '1.25rem'
-                }}>
+                <div style={{ padding: '0.6rem 0.9rem', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', fontSize: '0.8rem', marginBottom: '1rem' }}>
                   {uploadError}
                 </div>
               )}
 
-              <form onSubmit={handleUploadResume}>
+              <form onSubmit={handleUploadResume} style={{ marginBottom: '1.5rem' }}>
                 <div style={{
                   border: '2px dashed var(--border-subtle)',
-                  borderRadius: '12px',
-                  padding: '2rem 1.5rem',
+                  borderRadius: '10px',
+                  padding: '1.25rem',
                   textAlign: 'center',
                   background: 'rgba(0,0,0,0.2)',
-                  marginBottom: '1.5rem',
+                  marginBottom: '1rem',
                   cursor: 'pointer'
                 }}>
                   <input
@@ -380,12 +431,11 @@ export default function App() {
                     style={{ display: 'none' }}
                   />
                   <label htmlFor="resume-file" style={{ cursor: 'pointer', display: 'block' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📄</div>
-                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#f8fafc', marginBottom: '0.25rem' }}>
-                      {selectedFile ? selectedFile.name : 'Click or Drag & Drop PDF Resume'}
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f8fafc', marginBottom: '0.2rem' }}>
+                      {selectedFile ? selectedFile.name : 'Choose or Drop PDF Resume'}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB` : 'Maximum file size: 10MB'}
+                      {selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB` : 'Apache PDFBox Parser Ready'}
                     </div>
                   </label>
                 </div>
@@ -395,148 +445,337 @@ export default function App() {
                   disabled={uploadLoading || !selectedFile}
                   style={{
                     width: '100%',
-                    padding: '0.85rem',
+                    padding: '0.7rem',
                     borderRadius: '8px',
                     background: 'var(--gradient-brand)',
                     border: 'none',
                     color: '#fff',
                     fontWeight: 700,
-                    fontSize: '1rem',
+                    fontSize: '0.9rem',
                     cursor: (uploadLoading || !selectedFile) ? 'not-allowed' : 'pointer',
-                    boxShadow: 'var(--shadow-glow)',
                     opacity: (uploadLoading || !selectedFile) ? 0.6 : 1
                   }}
                 >
-                  {uploadLoading ? 'Extracting Text via PDFBox...' : 'Extract & Save to Database'}
+                  {uploadLoading ? 'Extracting Text...' : 'Parse & Upload Resume'}
                 </button>
               </form>
 
-              {/* Uploaded History List */}
-              {myResumes.length > 0 && (
-                <div style={{ marginTop: '2rem' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-                    Uploaded Resumes ({myResumes.length})
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {myResumes.map(r => (
-                      <div
-                        key={r.id}
-                        onClick={() => setUploadedResume(r)}
-                        style={{
-                          padding: '0.6rem 0.9rem',
-                          borderRadius: '6px',
-                          background: uploadedResume?.id === r.id ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.03)',
-                          border: uploadedResume?.id === r.id ? '1px solid var(--accent-indigo)' : '1px solid var(--border-subtle)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        <span style={{ fontWeight: 600 }}>{r.fileName}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{r.wordCount} words</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Right: Extracted Text Inspector */}
-            <div className="glass-panel" style={{ padding: '2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                  Extracted Raw Text
-                </h3>
-                {uploadedResume && (
-                  <span style={{
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: '4px',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    color: 'var(--accent-emerald)',
-                    fontSize: '0.75rem',
-                    fontWeight: 700
-                  }}>
-                    PARSED & SAVED
-                  </span>
-                )}
-              </div>
-
+              {/* Raw Text Preview */}
               {uploadedResume ? (
-                <>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: '0.75rem',
-                    background: 'rgba(0,0,0,0.3)',
-                    padding: '0.75rem',
-                    borderRadius: '8px',
-                    marginBottom: '1rem',
-                    fontSize: '0.8rem',
-                    border: '1px solid var(--border-subtle)'
-                  }}>
-                    <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>RESUME ID</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>#{uploadedResume.id}</div>
-                    </div>
-                    <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>WORDS</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{uploadedResume.wordCount}</div>
-                    </div>
-                    <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>CHARACTERS</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{uploadedResume.characterCount}</div>
-                    </div>
-                  </div>
-
-                  <div style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    DATABASE COLUMN: <code style={{ color: '#38bdf8' }}>resumes.raw_text</code>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                    <span>EXTRACTED RAW TEXT</span>
+                    <span>{uploadedResume.wordCount} words / {uploadedResume.characterCount} chars</span>
                   </div>
                   <pre style={{
                     background: 'rgba(0, 0, 0, 0.45)',
                     border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
-                    padding: '1rem',
+                    padding: '0.9rem',
                     fontSize: '0.8rem',
-                    color: '#e2e8f0',
-                    height: '280px',
+                    color: '#cbd5e1',
+                    height: '240px',
                     overflowY: 'auto',
                     whiteSpace: 'pre-wrap',
-                    fontFamily: 'var(--font-mono)',
-                    lineHeight: '1.5'
+                    fontFamily: 'var(--font-mono)'
                   }}>
                     {uploadedResume.rawText}
                   </pre>
-                </>
+                </div>
               ) : (
-                <div style={{
-                  height: '350px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--text-muted)',
-                  textAlign: 'center',
-                  padding: '2rem'
-                }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>📥</div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                    No Resume Uploaded Yet
-                  </h4>
-                  <p style={{ fontSize: '0.85rem', maxWidth: '300px' }}>
-                    Upload a PDF resume on the left to verify the text extraction pipeline.
-                  </p>
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  No resume uploaded yet. Select a PDF file above.
+                </div>
+              )}
+            </div>
+
+            {/* COLUMN 2: JOB DESCRIPTION (Step 4) */}
+            <div className="glass-panel" style={{ padding: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>STEP 4 COMPONENT</span>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 700 }}>Job Description</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowJobModal(true)}
+                  style={{
+                    background: 'rgba(6, 182, 212, 0.15)',
+                    color: 'var(--accent-cyan)',
+                    border: '1px solid rgba(6, 182, 212, 0.3)',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Add New Job
+                </button>
+              </div>
+
+              {/* Jobs selector */}
+              {jobs.length > 0 ? (
+                <div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+                      Active Target Position
+                    </label>
+                    <select
+                      value={selectedJob?.id || ''}
+                      onChange={(e) => {
+                        const job = jobs.find(j => j.id === Number(e.target.value));
+                        setSelectedJob(job);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.7rem 0.9rem',
+                        borderRadius: '8px',
+                        background: '#1e293b',
+                        border: '1px solid var(--border-subtle)',
+                        color: '#fff',
+                        fontSize: '0.9rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      {jobs.map(j => (
+                        <option key={j.id} value={j.id}>
+                          {j.title} — {j.company}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedJob && (
+                    <div>
+                      <div style={{ background: 'rgba(0,0,0,0.25)', padding: '0.9rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1rem' }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+                          {selectedJob.title}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--accent-cyan)', marginBottom: '0.5rem' }}>
+                          {selectedJob.company}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          Added {new Date(selectedJob.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+                        JOB DESCRIPTION SPECIFICATION
+                      </div>
+                      <pre style={{
+                        background: 'rgba(0, 0, 0, 0.45)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '8px',
+                        padding: '0.9rem',
+                        fontSize: '0.85rem',
+                        color: '#cbd5e1',
+                        height: '240px',
+                        overflowY: 'auto',
+                        whiteSpace: 'pre-wrap',
+                        fontFamily: 'var(--font-sans)',
+                        lineHeight: '1.6'
+                      }}>
+                        {selectedJob.description}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ padding: '2rem', textAlign: 'center' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                    No job descriptions created yet.
+                  </div>
+                  <button
+                    onClick={() => setShowJobModal(true)}
+                    style={{
+                      padding: '0.65rem 1.25rem',
+                      borderRadius: '8px',
+                      background: 'var(--gradient-brand)',
+                      border: 'none',
+                      color: '#fff',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Create Initial Job Description
+                  </button>
                 </div>
               )}
             </div>
 
           </div>
 
-          {/* Database Schema Card */}
-          <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--accent-cyan)' }}>
+          {/* Step 5 Prompt Banner */}
+          <div className="glass-panel" style={{ padding: '1.75rem 2rem', borderLeft: '4px solid var(--accent-indigo)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-indigo)', textTransform: 'uppercase' }}>
+                Foundation for Step 5 Ready
+              </div>
+              <h4 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0.25rem 0' }}>
+                We have: Resume ({uploadedResume ? uploadedResume.fileName : 'Standby'}) + Job Description ({selectedJob ? selectedJob.title : 'Standby'})
+              </h4>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                Next milestone: Implement the 4-tier structured scoring algorithm (Skill Match 40%, Keyword Match 25%, Experience Match 20%, Education Match 15%) and AI JSON generation!
+              </p>
+            </div>
+            <div style={{
+              padding: '0.5rem 1.2rem',
+              borderRadius: '8px',
+              background: 'rgba(99, 102, 241, 0.2)',
+              border: '1px solid var(--border-accent)',
+              color: '#c7d2fe',
+              fontWeight: 700,
+              fontSize: '0.85rem'
+            }}>
+              Ready for Step 5
+            </div>
+          </div>
+
+          {/* Modal: Create Job */}
+          {showJobModal && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.7)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 999,
+              padding: '1rem'
+            }}>
+              <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Add Job Description</h3>
+                  <button
+                    onClick={() => setShowJobModal(false)}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.25rem', cursor: 'pointer' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {jobError && (
+                  <div style={{ padding: '0.6rem 0.9rem', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                    {jobError}
+                  </div>
+                )}
+
+                <form onSubmit={handleCreateJob} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                      Job Title
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={jobForm.title}
+                      onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.7rem 0.9rem',
+                        borderRadius: '8px',
+                        background: 'rgba(0,0,0,0.3)',
+                        border: '1px solid var(--border-subtle)',
+                        color: '#fff',
+                        fontSize: '0.9rem'
+                      }}
+                      placeholder="e.g. Java Backend Developer"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                      Company
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={jobForm.company}
+                      onChange={(e) => setJobForm({ ...jobForm, company: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.7rem 0.9rem',
+                        borderRadius: '8px',
+                        background: 'rgba(0,0,0,0.3)',
+                        border: '1px solid var(--border-subtle)',
+                        color: '#fff',
+                        fontSize: '0.9rem'
+                      }}
+                      placeholder="e.g. TechCorp Solutions"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                      Job Description & Requirements
+                    </label>
+                    <textarea
+                      required
+                      rows={5}
+                      value={jobForm.description}
+                      onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.7rem 0.9rem',
+                        borderRadius: '8px',
+                        background: 'rgba(0,0,0,0.3)',
+                        border: '1px solid var(--border-subtle)',
+                        color: '#fff',
+                        fontSize: '0.9rem',
+                        resize: 'vertical'
+                      }}
+                      placeholder="e.g. Looking for Java developer with Spring Boot, PostgreSQL, REST APIs, Git and Docker experience."
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowJobModal(false)}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem',
+                        borderRadius: '8px',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid var(--border-subtle)',
+                        color: 'var(--text-secondary)',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={jobLoading}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem',
+                        borderRadius: '8px',
+                        background: 'var(--gradient-brand)',
+                        border: 'none',
+                        color: '#fff',
+                        fontWeight: 700,
+                        cursor: jobLoading ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {jobLoading ? 'Saving...' : 'Save Job (POST /api/jobs)'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Database Schema Card for jobs */}
+          <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--accent-cyan)', marginTop: '2rem' }}>
             <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-              PostgreSQL Table: <code style={{ color: 'var(--accent-cyan)' }}>resumes</code>
+              PostgreSQL Table: <code style={{ color: 'var(--accent-cyan)' }}>jobs</code>
             </h4>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
@@ -553,31 +792,31 @@ export default function App() {
                     <td style={{ padding: '0.4rem 0', fontFamily: 'var(--font-mono)', color: '#f8fafc' }}>id</td>
                     <td>BIGINT</td>
                     <td>PRIMARY KEY, GENERATED IDENTITY</td>
-                    <td>Unique resume record ID</td>
+                    <td>Unique job record ID</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                    <td style={{ padding: '0.4rem 0', fontFamily: 'var(--font-mono)', color: '#f8fafc' }}>user_id</td>
-                    <td>BIGINT</td>
-                    <td>FOREIGN KEY REFERENCES users(id)</td>
-                    <td>Candidate who uploaded the resume</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                    <td style={{ padding: '0.4rem 0', fontFamily: 'var(--font-mono)', color: '#f8fafc' }}>file_name</td>
+                    <td style={{ padding: '0.4rem 0', fontFamily: 'var(--font-mono)', color: '#f8fafc' }}>title</td>
                     <td>VARCHAR</td>
                     <td>NOT NULL</td>
-                    <td>Original uploaded filename (e.g. resume.pdf)</td>
+                    <td>Job title (e.g. Java Backend Developer)</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                    <td style={{ padding: '0.4rem 0', fontFamily: 'var(--font-mono)', color: '#f8fafc' }}>raw_text</td>
+                    <td style={{ padding: '0.4rem 0', fontFamily: 'var(--font-mono)', color: '#f8fafc' }}>company</td>
+                    <td>VARCHAR</td>
+                    <td>NOT NULL</td>
+                    <td>Hiring company or department</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                    <td style={{ padding: '0.4rem 0', fontFamily: 'var(--font-mono)', color: '#f8fafc' }}>description</td>
                     <td>TEXT</td>
                     <td>NOT NULL</td>
-                    <td>Plain text extracted via Apache PDFBox</td>
+                    <td>Job description and tech requirements</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: '0.4rem 0', fontFamily: 'var(--font-mono)', color: '#f8fafc' }}>uploaded_at</td>
+                    <td style={{ padding: '0.4rem 0', fontFamily: 'var(--font-mono)', color: '#f8fafc' }}>created_at</td>
                     <td>TIMESTAMP WITH TIME ZONE</td>
                     <td>NOT NULL</td>
-                    <td>Timestamp of upload</td>
+                    <td>Timestamp of creation</td>
                   </tr>
                 </tbody>
               </table>
